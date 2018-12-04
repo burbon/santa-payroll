@@ -1,7 +1,9 @@
 from datetime import date
 from decimal import Decimal
 
-from payroll import pay, Elf, JarSplit, payroll
+from payroll import pay, Elf, JarSplit, payroll, fewest_money
+
+import pytest
 
 
 def test_elf_age_had_birthday_that_year():
@@ -49,6 +51,35 @@ def test_jar_split_fraction():
     assert jar_split.charity == Decimal('0.3')
     assert jar_split.retirement == Decimal('1.2')
     assert jar_split.candy == Decimal('1.5')
+
+
+D = Decimal
+
+
+@pytest.mark.parametrize("test_amount,expected", [
+    (1, {1: 1}),
+    (2, {1: 2}),
+    (4, {1: 4}),
+    (5, {5: 1}),
+    (6, {5: 1, 1: 1}),
+    (136, {100: 1, 20: 1, 10: 1, 5: 1, 1: 1}),
+    (272, {100: 2, 20: 3, 10: 1, 1: 2}),
+
+    (D('0.01'), {D('0.01'): 1}),
+    (D('0.02'), {D('0.01'): 2}),
+    (D('0.04'), {D('0.01'): 4}),
+    (D('0.05'), {D('0.05'): 1}),
+    (D('0.06'), {D('0.05'): 1, D('0.01'): 1}),
+    (D('0.66'), {D('0.25'): 2, D('0.1'): 1, D('0.05'): 1, D('0.01'): 1}),
+
+    (D('272.66'), {
+        100: 2, 20: 3, 10: 1, 1: 2,
+        D('0.25'): 2, D('0.1'): 1, D('0.05'): 1, D('0.01'): 1}),
+])
+def test_fewest_money(test_amount, expected):
+    denominations, total = fewest_money(test_amount)
+    assert denominations == expected
+    assert total == sum(denominations.values())
 
 
 def test_payroll():

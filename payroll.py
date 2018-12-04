@@ -33,6 +33,27 @@ class JarSplit(object):
         self.candy = Decimal('0.5') * self.amount
 
 
+FM_N = [
+    100, 20, 10, 5, 1,
+    Decimal('0.25'), Decimal('0.1'), Decimal('0.05'), Decimal('0.01')
+]
+
+
+def fewest_money(amount):
+    result = {}
+    cnt = 0
+
+    for n in FM_N:
+        r = amount // n
+        if r:
+            result[n] = r
+            cnt += r
+
+        amount = amount % n
+
+    return result, cnt
+
+
 def payroll(elf, payday):
     ep = pay(elf, payday)
     js = JarSplit(ep)
