@@ -25,12 +25,29 @@ class JarSplit(object):
     """
     Represents 3 jars split
     """
+    JARS = {
+        'charity': Decimal('0.1'),
+        'retirement': Decimal('0.4'),
+        'candy': Decimal('0.5'),
+    }
+
     def __init__(self, amount):
         self.amount = amount
+        self.denomination = {}
 
-        self.charity = Decimal('0.1') * self.amount
-        self.retirement = Decimal('0.4') * self.amount
-        self.candy = Decimal('0.5') * self.amount
+        for jar_name, jar_tax in self.JARS.items():
+            jar = jar_tax * self.amount
+            self.__setattr__(jar_name, jar)
+
+            jar_denomination = fewest_money(jar)
+            self.__update_denomination(jar_denomination)
+
+    def __update_denomination(self, denomination):
+        for k, v in denomination.items():
+            if k not in self.denomination:
+                self.denomination[k] = v
+            else:
+                self.denomination[k] += v
 
 
 FM_N = [
@@ -41,17 +58,15 @@ FM_N = [
 
 def fewest_money(amount):
     result = {}
-    cnt = 0
 
     for n in FM_N:
         r = amount // n
         if r:
             result[n] = r
-            cnt += r
 
         amount = amount % n
 
-    return result, cnt
+    return result
 
 
 def payroll(elf, payday):
