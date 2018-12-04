@@ -1,7 +1,7 @@
 from datetime import date
 from decimal import Decimal
 
-from payroll import payroll, Elf, JarSplit
+from payroll import pay, Elf, JarSplit, payroll
 
 
 def test_elf_age_had_birthday_that_year():
@@ -16,25 +16,25 @@ def test_elf_age_no_birthday_that_year_yet():
     assert elf.age(on_date) == 11
 
 
-def test_payroll_whole():
+def test_pay_whole():
     elf = Elf(date.fromisoformat('2007-01-01'))
     payday = date.fromisoformat('2019-01-01')
     # (12 * 52) / 12 = 52
-    assert payroll(elf, payday) == 52
+    assert pay(elf, payday) == 52
 
 
-def test_payroll_fraction_round_down():
+def test_pay_fraction_round_down():
     elf = Elf(date.fromisoformat('2007-01-01'))
     payday = date.fromisoformat('2008-01-01')
     # (1 * 52) / 12 = 4.33
-    assert payroll(elf, payday) == 4
+    assert pay(elf, payday) == 4
 
 
-def test_payroll_fraction_round_up():
+def test_pay_fraction_round_up():
     elf = Elf(date.fromisoformat('2007-01-01'))
     payday = date.fromisoformat('2009-01-01')
     # (2 * 52) / 12 = 8.66
-    assert payroll(elf, payday) == 9
+    assert pay(elf, payday) == 9
 
 
 def test_jar_split_whole():
@@ -49,3 +49,15 @@ def test_jar_split_fraction():
     assert jar_split.charity == Decimal('0.3')
     assert jar_split.retirement == Decimal('1.2')
     assert jar_split.candy == Decimal('1.5')
+
+
+def test_payroll():
+    elf = Elf(date.fromisoformat('2007-01-02'))
+    payday = date.fromisoformat('2019-01-02')
+
+    elf_pay, jar_split = payroll(elf, payday)
+
+    assert elf_pay == 52
+    assert jar_split.charity == Decimal('5.2')
+    assert jar_split.retirement == Decimal('20.8')
+    assert jar_split.candy == 26

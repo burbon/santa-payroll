@@ -13,7 +13,18 @@ class Elf(object):
         return diff
 
 
+def pay(elf, payday):
+    """
+    Returns how much elf should be paid on a payday.
+    Returns integer.
+    """
+    return round((elf.age(payday) * 52) / 12)
+
+
 class JarSplit(object):
+    """
+    Represents 3 jars split
+    """
     def __init__(self, amount):
         self.amount = amount
 
@@ -23,4 +34,7 @@ class JarSplit(object):
 
 
 def payroll(elf, payday):
-    return round((elf.age(payday) * 52) / 12)
+    ep = pay(elf, payday)
+    js = JarSplit(ep)
+
+    return ep, js
