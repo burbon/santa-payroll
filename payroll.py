@@ -1,3 +1,6 @@
+from decimal import Decimal
+
+
 class Elf(object):
     def __init__(self, birthday):
         self.birthday = birthday
@@ -8,6 +11,15 @@ class Elf(object):
             diff -= 1
 
         return diff
+
+
+class JarSplit(object):
+    def __init__(self, amount):
+        self.amount = amount
+
+        self.charity = Decimal('0.1') * self.amount
+        self.retirement = Decimal('0.4') * self.amount
+        self.candy = Decimal('0.5') * self.amount
 
 
 def payroll(elf, payday):
