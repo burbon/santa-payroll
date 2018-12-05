@@ -23,6 +23,10 @@ class Payroll(object):
         for jar in self.jar_split.jars.values():
             self.denomination.update(jar)
 
+    def __str__(self):
+        return "%s|%s|%s|%s" % (
+            self.elf, self.pay, self.jar_split, self.denomination)
+
 
 class JarSplit(object):
     """
@@ -42,6 +46,10 @@ class JarSplit(object):
             jar = jar_tax * self.amount
             self.__setattr__(jar_name, jar)
             self.jars[jar_name] = jar
+
+    def __str__(self):
+        return "{'charity': %s, 'retirement': %s, 'candy': %s}" % (
+            self.charity, self.retirement, self.candy)
 
 
 class Denomination(object):
@@ -77,9 +85,19 @@ class Denomination(object):
 
         return result
 
+    def __str__(self):
+        output = '{'
+        for n, c in sorted(self.denomination.items(), reverse=True):
+            output += "'%s': %s, " % (n, c)
+        output = output[:-2]
+        output += '}'
+        return output
+
 
 class Elf(object):
-    def __init__(self, birthday):
+    def __init__(self, birthday, name=None, surname=None):
+        self.name = name
+        self.surname = surname
         self.birthday = birthday
 
     def age(self, date):
@@ -88,3 +106,6 @@ class Elf(object):
             diff -= 1
 
         return diff
+
+    def __str__(self):
+        return "%s %s" % (self.name, self.surname)

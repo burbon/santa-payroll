@@ -5,13 +5,16 @@ from payroll import Payroll, JarSplit, Denomination, Elf
 
 import pytest
 
+
 @pytest.fixture
 def elf():
-    return Elf(date.fromisoformat('2007-01-01'))
+    return Elf(date.fromisoformat('2007-01-01'), 'Alabaster', 'Snow')
+
 
 @pytest.fixture
 def payday():
     return date.fromisoformat('2019-01-01')
+
 
 @pytest.fixture
 def payroll(elf, payday):
@@ -38,11 +41,9 @@ def test_payroll_denomination(payroll):
     # 5.2
     assert Denomination.fewest_money(payroll.jar_split.charity) == {
         5: 1, D('0.1'): 2}
-
     # 20.8
     assert Denomination.fewest_money(payroll.jar_split.retirement) == {
         20: 1, D('0.25'): 3, D('0.05'): 1}
-
     # 26
     assert Denomination.fewest_money(payroll.jar_split.candy) == {
         20: 1, 5: 1, 1: 1}
@@ -50,6 +51,18 @@ def test_payroll_denomination(payroll):
     assert payroll.denomination.denomination == {
         20: 2, 5: 2, 1: 1, D('0.25'): 3, D('0.1'): 2, D('0.05'): 1
     }
+
+
+def test_payroll_output(payroll):
+    assert str(payroll.elf) == 'Alabaster Snow'
+    assert str(payroll.pay) == '52'
+    assert str(payroll.jar_split) == \
+        "{'charity': 5.2, 'retirement': 20.8, 'candy': 26.0}"
+    assert str(payroll.denomination) == \
+        "{'20': 2, '5': 2, '1': 1, '0.25': 3, '0.1': 2, '0.05': 1}"
+
+    assert str(payroll) == '%s|%s|%s|%s' % (
+        payroll.elf, payroll.pay, payroll.jar_split, payroll.denomination)
 
 
 def test_elf_age_had_birthday_that_year():
@@ -131,3 +144,10 @@ def test_denomination_update(total, jar_denomination, expected):
     denomination.denomination = total
     denomination.update_from_denomination(jar_denomination)
     assert denomination.denomination == expected
+
+
+if __name__ == "__main__":
+    e = elf()
+    d = payday()
+    p = payroll(e, d)
+    print(p)
