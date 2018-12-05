@@ -14,24 +14,28 @@ class Payroll(object):
         if not self.elfs:
             self.elfs = []
 
-        self.denomination = Denomination()
+        self.change = Change()
+        self.report = []
 
     def __str__(self):
         output = ''
-        for elf in self.elfs:
-            paycheck = self.paycheck(elf)
+        for paycheck in self.report:
             output += "%s\n" % paycheck
         output += "\n"
 
-        output += "Total denomination: %s" % self.denomination
+        output += "Total change: %s" % self.change
 
         return output
+
+    def run(self):
+        for elf in self.elfs:
+            self.report.append(self.paycheck(elf))
 
     def paycheck(self, elf):
         pay = self.pay(elf)
         paycheck = Paycheck(elf, pay, self.JARS)
 
-        self.denomination.update_from_denomination(paycheck.denomination)
+        self.change.update_from_change(paycheck.change)
 
         return paycheck
 
@@ -50,20 +54,20 @@ class Paycheck(object):
         self.jars_def = jars
 
         self.jars = Jars()
-        self.denomination = Denomination()
+        self.change = Change()
 
         self.build_jars()
 
     def __str__(self):
         return "%s|%s|%s|%s" % (
-            self.elf, self.pay, self.jars, self.denomination)
+            self.elf, self.pay, self.jars, self.change)
 
     def build_jars(self):
         for jar_name, jar_tax in self.jars_def.items():
             money = jar_tax * self.pay
             self.__setattr__(jar_name, money)
             self.jars[jar_name] = money
-            self.denomination.update_from_money(money)
+            self.change.update_from_money(money)
 
 
 class Jars(dict):
@@ -72,8 +76,8 @@ class Jars(dict):
             self['charity'], self['retirement'], self['candy'])
 
 
-class Denomination(dict):
-    FM_N = [
+class Change(dict):
+    DENOMINATION = [
         100, 20, 10, 5, 1,
         Decimal('0.25'), Decimal('0.1'), Decimal('0.05'), Decimal('0.01')
     ]
@@ -81,27 +85,27 @@ class Denomination(dict):
     def __str__(self):
         output = '{'
         for n, c in sorted(self.items(), reverse=True):
-            output += "'%s': %s, " % (n, c)
+            output += "%s: %s, " % (n, c)
         output = output[:-2]
         output += '}'
         return output
 
     def update_from_money(self, amount):
-        denomination = self.fewest_money(amount)
-        self.update_from_denomination(denomination)
+        change = self.make(amount)
+        self.update_from_change(change)
 
-    def update_from_denomination(self, denomination):
-        for k, v in denomination.items():
+    def update_from_change(self, change):
+        for k, v in change.items():
             if k not in self:
                 self[k] = v
             else:
                 self[k] += v
 
     @classmethod
-    def fewest_money(cls, amount):
+    def make(cls, amount):
         result = {}
 
-        for n in cls.FM_N:
+        for n in cls.DENOMINATION:
             r = int(amount // n)
             if r:
                 result[n] = r

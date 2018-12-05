@@ -1,7 +1,7 @@
 from datetime import date
 from decimal import Decimal
 
-from payroll import Payroll, Paycheck, Denomination, Elf
+from payroll import Payroll, Paycheck, Change, Elf
 
 import pytest
 
@@ -47,35 +47,37 @@ def test_paycheck(paycheck, pay):
     assert paycheck.candy == Decimal('26')
 
 
-def test_paycheck_denomination(paycheck):
+def test_paycheck_change(paycheck):
     # 5.2
-    assert Denomination.fewest_money(paycheck.charity) == {
+    assert Change.make(paycheck.charity) == {
         5: 1, D('0.1'): 2}
     # 20.8
-    assert Denomination.fewest_money(paycheck.retirement) == {
+    assert Change.make(paycheck.retirement) == {
         20: 1, D('0.25'): 3, D('0.05'): 1}
     # 26
-    assert Denomination.fewest_money(paycheck.candy) == {
+    assert Change.make(paycheck.candy) == {
         20: 1, 5: 1, 1: 1}
 
-    assert paycheck.denomination == {
+    assert paycheck.change == {
         20: 2, 5: 2, 1: 1, D('0.25'): 3, D('0.1'): 2, D('0.05'): 1
     }
 
 
 def test_payroll_output(payday, elf, elf2):
-    p = Payroll(payday, [elf, elf2])
+    payroll = Payroll(payday, [elf, elf2])
+    payroll.run()
+
     expected = 'Alabaster Snow|52|' \
         "{'charity': 5.2, 'retirement': 20.8, 'candy': 26.0}|" \
-        "{'20': 2, '5': 2, '1': 1, '0.25': 3, '0.1': 2, '0.05': 1}\n" \
+        "{20: 2, 5: 2, 1: 1, 0.25: 3, 0.1: 2, 0.05: 1}\n" \
         "Foo Bar|485|" \
         "{'charity': 48.5, 'retirement': 194.0, 'candy': 242.5}|" \
-        "{'100': 3, '20': 8, '10': 1, '5': 1, '1': 9, '0.25': 4}\n" \
-        "\nTotal denomination: " \
-        "{'100': 3, '20': 10, '10': 1, '5': 3, '1': 10, " \
-        "'0.25': 7, '0.1': 2, '0.05': 1}"
+        "{100: 3, 20: 8, 10: 1, 5: 1, 1: 9, 0.25: 4}\n" \
+        "\nTotal change: " \
+        "{100: 3, 20: 10, 10: 1, 5: 3, 1: 10, " \
+        "0.25: 7, 0.1: 2, 0.05: 1}"
 
-    assert str(p) == expected
+    assert str(payroll) == expected
 
 
 def test_paycheck_output(paycheck):
@@ -83,11 +85,11 @@ def test_paycheck_output(paycheck):
     assert str(paycheck.pay) == '52'
     assert str(paycheck.jars) == \
         "{'charity': 5.2, 'retirement': 20.8, 'candy': 26.0}"
-    assert str(paycheck.denomination) == \
-        "{'20': 2, '5': 2, '1': 1, '0.25': 3, '0.1': 2, '0.05': 1}"
+    assert str(paycheck.change) == \
+        "{20: 2, 5: 2, 1: 1, 0.25: 3, 0.1: 2, 0.05: 1}"
 
     assert str(paycheck) == '%s|%s|%s|%s' % (
-        paycheck.elf, paycheck.pay, paycheck.jars, paycheck.denomination)
+        paycheck.elf, paycheck.pay, paycheck.jars, paycheck.change)
 
 
 def test_elf_age_had_birthday_that_year():
@@ -139,8 +141,8 @@ D = Decimal
         100: 2, 20: 3, 10: 1, 1: 2,
         D('0.25'): 2, D('0.1'): 1, D('0.05'): 1, D('0.01'): 1}),
 ])
-def test_fewest_money(test_amount, expected):
-    assert Denomination.fewest_money(test_amount) == expected
+def test_change_make(test_amount, expected):
+    assert Change.make(test_amount) == expected
 
 
 def test_paycheck_whole(elf):
@@ -157,17 +159,17 @@ def test_paycheck_fraction(elf):
     assert paycheck.candy == Decimal('1.5')
 
 
-@pytest.mark.parametrize("total,jar_denomination,expected", [
+@pytest.mark.parametrize("total,jar_change,expected", [
     ({}, {1: 1}, {1: 1}),
     ({1: 1}, {1: 1}, {1: 2}),
     ({1: 2}, {1: 2}, {1: 4}),
     ({1: 4}, {2: 2}, {1: 4, 2: 2}),
     ({1: 4, 2: 2}, {2: 2, 5: 1}, {1: 4, 2: 4, 5: 1}),
 ])
-def test_denomination_update(total, jar_denomination, expected):
-    denomination = Denomination(total)
-    denomination.update_from_denomination(jar_denomination)
-    assert denomination == expected
+def test_change_update(total, jar_change, expected):
+    change = Change(total)
+    change.update_from_change(jar_change)
+    assert change == expected
 
 
 if __name__ == "__main__":
