@@ -1,9 +1,55 @@
 from datetime import date
 from decimal import Decimal
 
-from payroll import pay, Elf, JarSplit, payroll, fewest_money
+from payroll import Payroll, JarSplit, Denomination, Elf
 
 import pytest
+
+@pytest.fixture
+def elf():
+    return Elf(date.fromisoformat('2007-01-01'))
+
+@pytest.fixture
+def payday():
+    return date.fromisoformat('2019-01-01')
+
+@pytest.fixture
+def payroll(elf, payday):
+    """
+    12 year old elf payroll
+    """
+    return Payroll(elf, payday)
+
+
+def test_payroll_pay(payroll):
+    # (12 * 52) / 12 = 52
+    assert payroll.pay == 52
+
+
+def test_payroll_jar_split(payroll):
+    assert payroll.pay == payroll.jar_split.amount
+
+    assert payroll.jar_split.charity == Decimal('5.2')
+    assert payroll.jar_split.retirement == Decimal('20.8')
+    assert payroll.jar_split.candy == Decimal('26')
+
+
+def test_payroll_denomination(payroll):
+    # 5.2
+    assert Denomination.fewest_money(payroll.jar_split.charity) == {
+        5: 1, D('0.1'): 2}
+
+    # 20.8
+    assert Denomination.fewest_money(payroll.jar_split.retirement) == {
+        20: 1, D('0.25'): 3, D('0.05'): 1}
+
+    # 26
+    assert Denomination.fewest_money(payroll.jar_split.candy) == {
+        20: 1, 5: 1, 1: 1}
+
+    assert payroll.denomination.denomination == {
+        20: 2, 5: 2, 1: 1, D('0.25'): 3, D('0.1'): 2, D('0.05'): 1
+    }
 
 
 def test_elf_age_had_birthday_that_year():
@@ -18,25 +64,18 @@ def test_elf_age_no_birthday_that_year_yet():
     assert elf.age(on_date) == 11
 
 
-def test_pay_whole():
-    elf = Elf(date.fromisoformat('2007-01-01'))
-    payday = date.fromisoformat('2019-01-01')
-    # (12 * 52) / 12 = 52
-    assert pay(elf, payday) == 52
-
-
 def test_pay_fraction_round_down():
     elf = Elf(date.fromisoformat('2007-01-01'))
     payday = date.fromisoformat('2008-01-01')
     # (1 * 52) / 12 = 4.33
-    assert pay(elf, payday) == 4
+    assert Payroll(elf, payday).pay == 4
 
 
 def test_pay_fraction_round_up():
     elf = Elf(date.fromisoformat('2007-01-01'))
     payday = date.fromisoformat('2009-01-01')
     # (2 * 52) / 12 = 8.66
-    assert pay(elf, payday) == 9
+    assert Payroll(elf, payday).pay == 9
 
 
 D = Decimal
@@ -63,7 +102,7 @@ D = Decimal
         D('0.25'): 2, D('0.1'): 1, D('0.05'): 1, D('0.01'): 1}),
 ])
 def test_fewest_money(test_amount, expected):
-    assert fewest_money(test_amount) == expected
+    assert Denomination.fewest_money(test_amount) == expected
 
 
 def test_jar_split_whole():
@@ -87,36 +126,8 @@ def test_jar_split_fraction():
     ({1: 4}, {2: 2}, {1: 4, 2: 2}),
     ({1: 4, 2: 2}, {2: 2, 5: 1}, {1: 4, 2: 4, 5: 1}),
 ])
-def test_jar_split_update_denomination(total, jar_denomination, expected):
-    jar_split = JarSplit(0)
-    jar_split.denomination = total
-    jar_split._JarSplit__update_denomination(jar_denomination)
-    assert jar_split.denomination == expected
-
-
-def test_jar_split_denomination():
-    jar_split = JarSplit(103)
-
-    assert jar_split.charity == Decimal('10.3')
-    assert fewest_money(jar_split.charity) == {
-        10: 1, D('0.25'): 1, D('0.05'): 1}
-
-    assert jar_split.retirement == Decimal('41.2')
-    assert fewest_money(jar_split.retirement) == {
-        20: 2, 1: 1, D('0.1'): 2}
-
-    assert jar_split.candy == Decimal('51.5')
-    assert fewest_money(jar_split.candy) == {
-        20: 2, 10: 1, 1: 1, D('0.25'): 2}
-
-    assert jar_split.denomination == {
-        20: 4, 10: 2, 1: 2, D('0.25'): 3, D('0.1'): 2, D('0.05'): 1
-    }
-
-
-def test_payroll():
-    elf = Elf(date.fromisoformat('2007-01-02'))
-    payday = date.fromisoformat('2019-01-02')
-
-    elf_pay, jar_split = payroll(elf, payday)
-    assert elf_pay == jar_split.amount
+def test_denomination_update(total, jar_denomination, expected):
+    denomination = Denomination()
+    denomination.denomination = total
+    denomination.update_from_denomination(jar_denomination)
+    assert denomination.denomination == expected
