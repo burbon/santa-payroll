@@ -58,7 +58,7 @@ def test_paycheck_denomination(paycheck):
     assert Denomination.fewest_money(paycheck.candy) == {
         20: 1, 5: 1, 1: 1}
 
-    assert paycheck.denomination.denomination == {
+    assert paycheck.denomination == {
         20: 2, 5: 2, 1: 1, D('0.25'): 3, D('0.1'): 2, D('0.05'): 1
     }
 
@@ -165,10 +165,9 @@ def test_paycheck_fraction(elf):
     ({1: 4, 2: 2}, {2: 2, 5: 1}, {1: 4, 2: 4, 5: 1}),
 ])
 def test_denomination_update(total, jar_denomination, expected):
-    denomination = Denomination()
-    denomination.denomination = total
+    denomination = Denomination(total)
     denomination.update_from_denomination(jar_denomination)
-    assert denomination.denomination == expected
+    assert denomination == expected
 
 
 if __name__ == "__main__":
