@@ -2,54 +2,80 @@ from decimal import Decimal
 
 
 class Payroll(object):
-    def __init__(self, elf, payday):
-        self.elf = elf
-        self.payday = payday
-
-        self.pay = self._pay()
-        self.jar_split = JarSplit(self.pay)
-        self.denomination = Denomination()
-
-        self.denominate()
-
-    def _pay(self):
-        """
-        Returns how much elf should be paid on a payday.
-        Returns integer.
-        """
-        return round((self.elf.age(self.payday) * 52) / 12)
-
-    def denominate(self):
-        for jar in self.jar_split.jars.values():
-            self.denomination.update(jar)
-
-    def __str__(self):
-        return "%s|%s|%s|%s" % (
-            self.elf, self.pay, self.jar_split, self.denomination)
-
-
-class JarSplit(object):
-    """
-    Represents 3 jars split
-    """
     JARS = {
         'charity': Decimal('0.1'),
         'retirement': Decimal('0.4'),
         'candy': Decimal('0.5'),
     }
 
-    def __init__(self, amount):
-        self.amount = amount
-        self.jars = {}
+    def __init__(self, payday, elfs=None):
+        self.payday = payday
+        self.elfs = elfs
+        if not self.elfs:
+            self.elfs = []
 
-        for jar_name, jar_tax in self.JARS.items():
-            jar = jar_tax * self.amount
+        self.denomination = Denomination()
+
+    def __str__(self):
+        output = ''
+        for elf in self.elfs:
+            paycheck = self.paycheck(elf)
+            output += "%s\n" % paycheck
+        output += "\n"
+
+        output += "Total denomination: %s" % self.denomination
+
+        return output
+
+    def paycheck(self, elf):
+        pay = self.pay(elf)
+        paycheck = Paycheck(elf, pay, self.JARS)
+
+        self.denominate(paycheck)
+
+        return paycheck
+
+    def pay(self, elf):
+        """
+        Returns how much elf should be paid on a payday.
+        Returns integer.
+        """
+        return round((elf.age(self.payday) * 52) / 12)
+
+    def denominate(self, paycheck):
+        self.denomination.update_from_denomination(
+            paycheck.denomination.denomination)
+
+
+class Paycheck(object):
+    def __init__(self, elf, pay, jars):
+        self.elf = elf
+        self.pay = pay
+        self.jars_def = jars
+
+        self.jars = Jars()
+        self.denomination = Denomination()
+
+        for jar_name, jar_tax in self.jars_def.items():
+            jar = jar_tax * self.pay
             self.__setattr__(jar_name, jar)
             self.jars[jar_name] = jar
 
+        self.denominate()
+
+    def __str__(self):
+        return "%s|%s|%s|%s" % (
+            self.elf, self.pay, self.jars, self.denomination)
+
+    def denominate(self):
+        for jar in self.jars.values():
+            self.denomination.update(jar)
+
+
+class Jars(dict):
     def __str__(self):
         return "{'charity': %s, 'retirement': %s, 'candy': %s}" % (
-            self.charity, self.retirement, self.candy)
+            self['charity'], self['retirement'], self['candy'])
 
 
 class Denomination(object):
@@ -60,6 +86,14 @@ class Denomination(object):
 
     def __init__(self):
         self.denomination = {}
+
+    def __str__(self):
+        output = '{'
+        for n, c in sorted(self.denomination.items(), reverse=True):
+            output += "'%s': %s, " % (n, c)
+        output = output[:-2]
+        output += '}'
+        return output
 
     def update(self, amount):
         denomination = self.fewest_money(amount)
@@ -85,14 +119,6 @@ class Denomination(object):
 
         return result
 
-    def __str__(self):
-        output = '{'
-        for n, c in sorted(self.denomination.items(), reverse=True):
-            output += "'%s': %s, " % (n, c)
-        output = output[:-2]
-        output += '}'
-        return output
-
 
 class Elf(object):
     def __init__(self, birthday, name=None, surname=None):
@@ -100,12 +126,12 @@ class Elf(object):
         self.surname = surname
         self.birthday = birthday
 
+    def __str__(self):
+        return "%s %s" % (self.name, self.surname)
+
     def age(self, date):
         diff = date.year - self.birthday.year
         if (date.month, date.day) < (self.birthday.month, self.birthday.day):
             diff -= 1
 
         return diff
-
-    def __str__(self):
-        return "%s %s" % (self.name, self.surname)

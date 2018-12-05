@@ -1,7 +1,7 @@
 from datetime import date
 from decimal import Decimal
 
-from payroll import Payroll, JarSplit, Denomination, Elf
+from payroll import Payroll, Paycheck, Denomination, Elf
 
 import pytest
 
@@ -12,57 +12,82 @@ def elf():
 
 
 @pytest.fixture
+def elf2():
+    return Elf(date.fromisoformat('1907-01-01'), 'Foo', 'Bar')
+
+
+@pytest.fixture
 def payday():
     return date.fromisoformat('2019-01-01')
 
 
 @pytest.fixture
-def payroll(elf, payday):
-    """
-    12 year old elf payroll
-    """
-    return Payroll(elf, payday)
+def pay(payday, elf):
+    return Payroll(payday).pay(elf)
 
 
-def test_payroll_pay(payroll):
+@pytest.fixture
+def paycheck(elf, pay):
+    """
+    12 year old elf paycheck
+    """
+    return Paycheck(elf, pay, Payroll.JARS)
+
+
+def test_payroll_pay(pay):
     # (12 * 52) / 12 = 52
-    assert payroll.pay == 52
+    assert pay == 52
 
 
-def test_payroll_jar_split(payroll):
-    assert payroll.pay == payroll.jar_split.amount
+def test_paycheck(paycheck, pay):
+    assert paycheck.pay == pay
 
-    assert payroll.jar_split.charity == Decimal('5.2')
-    assert payroll.jar_split.retirement == Decimal('20.8')
-    assert payroll.jar_split.candy == Decimal('26')
+    assert paycheck.charity == Decimal('5.2')
+    assert paycheck.retirement == Decimal('20.8')
+    assert paycheck.candy == Decimal('26')
 
 
-def test_payroll_denomination(payroll):
+def test_paycheck_denomination(paycheck):
     # 5.2
-    assert Denomination.fewest_money(payroll.jar_split.charity) == {
+    assert Denomination.fewest_money(paycheck.charity) == {
         5: 1, D('0.1'): 2}
     # 20.8
-    assert Denomination.fewest_money(payroll.jar_split.retirement) == {
+    assert Denomination.fewest_money(paycheck.retirement) == {
         20: 1, D('0.25'): 3, D('0.05'): 1}
     # 26
-    assert Denomination.fewest_money(payroll.jar_split.candy) == {
+    assert Denomination.fewest_money(paycheck.candy) == {
         20: 1, 5: 1, 1: 1}
 
-    assert payroll.denomination.denomination == {
+    assert paycheck.denomination.denomination == {
         20: 2, 5: 2, 1: 1, D('0.25'): 3, D('0.1'): 2, D('0.05'): 1
     }
 
 
-def test_payroll_output(payroll):
-    assert str(payroll.elf) == 'Alabaster Snow'
-    assert str(payroll.pay) == '52'
-    assert str(payroll.jar_split) == \
+def test_payroll_output(payday, elf, elf2):
+    p = Payroll(payday, [elf, elf2])
+    expected = 'Alabaster Snow|52|' \
+        "{'charity': 5.2, 'retirement': 20.8, 'candy': 26.0}|" \
+        "{'20': 2, '5': 2, '1': 1, '0.25': 3, '0.1': 2, '0.05': 1}\n" \
+        "Foo Bar|485|" \
+        "{'charity': 48.5, 'retirement': 194.0, 'candy': 242.5}|" \
+        "{'100': 3, '20': 8, '10': 1, '5': 1, '1': 9, '0.25': 4}\n" \
+        "\nTotal denomination: " \
+        "{'100': 3, '20': 10, '10': 1, '5': 3, '1': 10, " \
+        "'0.25': 7, '0.1': 2, '0.05': 1}"
+
+    assert str(p) == expected
+
+
+def test_paycheck_output(paycheck):
+    assert str(paycheck.elf) == 'Alabaster Snow'
+    assert str(paycheck.pay) == '52'
+    assert str(paycheck.jars) == \
         "{'charity': 5.2, 'retirement': 20.8, 'candy': 26.0}"
-    assert str(payroll.denomination) == \
+    assert str(paycheck.denomination) == \
         "{'20': 2, '5': 2, '1': 1, '0.25': 3, '0.1': 2, '0.05': 1}"
 
-    assert str(payroll) == '%s|%s|%s|%s' % (
-        payroll.elf, payroll.pay, payroll.jar_split, payroll.denomination)
+    assert str(paycheck) == '%s|%s|%s|%s' % (
+        paycheck.elf, paycheck.pay, paycheck.jars, paycheck.denomination)
 
 
 def test_elf_age_had_birthday_that_year():
@@ -81,14 +106,14 @@ def test_pay_fraction_round_down():
     elf = Elf(date.fromisoformat('2007-01-01'))
     payday = date.fromisoformat('2008-01-01')
     # (1 * 52) / 12 = 4.33
-    assert Payroll(elf, payday).pay == 4
+    assert Payroll(payday).pay(elf) == 4
 
 
 def test_pay_fraction_round_up():
     elf = Elf(date.fromisoformat('2007-01-01'))
     payday = date.fromisoformat('2009-01-01')
     # (2 * 52) / 12 = 8.66
-    assert Payroll(elf, payday).pay == 9
+    assert Payroll(payday).pay(elf) == 9
 
 
 D = Decimal
@@ -118,18 +143,18 @@ def test_fewest_money(test_amount, expected):
     assert Denomination.fewest_money(test_amount) == expected
 
 
-def test_jar_split_whole():
-    jar_split = JarSplit(100)
-    assert jar_split.charity == 10
-    assert jar_split.retirement == 40
-    assert jar_split.candy == 50
+def test_paycheck_whole(elf):
+    paycheck = Paycheck(elf, 100, Payroll.JARS)
+    assert paycheck.charity == 10
+    assert paycheck.retirement == 40
+    assert paycheck.candy == 50
 
 
-def test_jar_split_fraction():
-    jar_split = JarSplit(3)
-    assert jar_split.charity == Decimal('0.3')
-    assert jar_split.retirement == Decimal('1.2')
-    assert jar_split.candy == Decimal('1.5')
+def test_paycheck_fraction(elf):
+    paycheck = Paycheck(elf, 3, Payroll.JARS)
+    assert paycheck.charity == Decimal('0.3')
+    assert paycheck.retirement == Decimal('1.2')
+    assert paycheck.candy == Decimal('1.5')
 
 
 @pytest.mark.parametrize("total,jar_denomination,expected", [
@@ -147,7 +172,5 @@ def test_denomination_update(total, jar_denomination, expected):
 
 
 if __name__ == "__main__":
-    e = elf()
-    d = payday()
-    p = payroll(e, d)
+    p = Payroll(payday(), [elf(), elf2()])
     print(p)
