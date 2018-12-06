@@ -27,6 +27,30 @@ def payday():
 def pay(payday, elf):
     return Payroll(payday).pay(elf)
 
+
+@pytest.fixture
+def paycheck(elf, pay):
+    """
+    12 year old elf paycheck
+    """
+    return Paycheck(elf, pay, Payroll.JARS)
+
+
+@pytest.fixture
+def payday_before_elf_was_born():
+    return date.fromisoformat('1800-01-01')
+
+
+@pytest.fixture
+def pay_of_not_born_elf(payday_before_elf_was_born, elf):
+    return Payroll(payday_before_elf_was_born).pay(elf)
+
+
+@pytest.fixture
+def paycheck_of_not_born_elf(elf, pay_of_not_born_elf):
+    return Paycheck(elf, pay_of_not_born_elf, Payroll.JARS)
+
+
 report = \
     "Alabaster Snow|52|" \
     "{'charity': 5.2, 'retirement': 20.8, 'candy': 26.0}|" \
@@ -37,14 +61,6 @@ report = \
     "\nTotal change: " \
     "{100: 3, 20: 10, 10: 1, 5: 3, 1: 10, " \
     "0.25: 7, 0.1: 2, 0.05: 1}"
-
-
-@pytest.fixture
-def paycheck(elf, pay):
-    """
-    12 year old elf paycheck
-    """
-    return Paycheck(elf, pay, Payroll.JARS)
 
 
 def test_payroll_pay(pay):
@@ -74,6 +90,14 @@ def test_paycheck_change(paycheck):
     assert paycheck.change == {
         20: 2, 5: 2, 1: 1, D('0.25'): 3, D('0.1'): 2, D('0.05'): 1
     }
+
+
+@pytest.mark.xfail
+def test_paycheck_change_of_not_born_elf(paycheck_of_not_born_elf):
+    assert paycheck_of_not_born_elf.pay < 0
+    assert all(map(
+        lambda x: x < 0,
+        Change.make(paycheck_of_not_born_elf.charity).values()))
 
 
 def test_payroll_output(payday, elf, elf2):
