@@ -1,19 +1,21 @@
+import pytest
+
 from datetime import date
 from decimal import Decimal
+import sys
 
-from payroll import Payroll, Paycheck, Change, Elf
-
-import pytest
+import payroll
+from payroll import Payroll, Paycheck, Change, Elf, argparser
 
 
 @pytest.fixture
 def elf():
-    return Elf(date.fromisoformat('2007-01-01'), 'Alabaster', 'Snow')
+    return Elf(date.fromisoformat('2007-01-01'), 'Alabaster Snow')
 
 
 @pytest.fixture
 def elf2():
-    return Elf(date.fromisoformat('1907-01-01'), 'Foo', 'Bar')
+    return Elf(date.fromisoformat('1907-01-01'), 'FooBar')
 
 
 @pytest.fixture
@@ -24,6 +26,17 @@ def payday():
 @pytest.fixture
 def pay(payday, elf):
     return Payroll(payday).pay(elf)
+
+report = \
+    "Alabaster Snow|52|" \
+    "{'charity': 5.2, 'retirement': 20.8, 'candy': 26.0}|" \
+    "{20: 2, 5: 2, 1: 1, 0.25: 3, 0.1: 2, 0.05: 1}\n" \
+    "FooBar|485|" \
+    "{'charity': 48.5, 'retirement': 194.0, 'candy': 242.5}|" \
+    "{100: 3, 20: 8, 10: 1, 5: 1, 1: 9, 0.25: 4}\n" \
+    "\nTotal change: " \
+    "{100: 3, 20: 10, 10: 1, 5: 3, 1: 10, " \
+    "0.25: 7, 0.1: 2, 0.05: 1}"
 
 
 @pytest.fixture
@@ -67,17 +80,29 @@ def test_payroll_output(payday, elf, elf2):
     payroll = Payroll(payday, [elf, elf2])
     payroll.run()
 
-    expected = 'Alabaster Snow|52|' \
-        "{'charity': 5.2, 'retirement': 20.8, 'candy': 26.0}|" \
-        "{20: 2, 5: 2, 1: 1, 0.25: 3, 0.1: 2, 0.05: 1}\n" \
-        "Foo Bar|485|" \
-        "{'charity': 48.5, 'retirement': 194.0, 'candy': 242.5}|" \
-        "{100: 3, 20: 8, 10: 1, 5: 1, 1: 9, 0.25: 4}\n" \
-        "\nTotal change: " \
-        "{100: 3, 20: 10, 10: 1, 5: 3, 1: 10, " \
-        "0.25: 7, 0.1: 2, 0.05: 1}"
+    assert str(payroll) == report
 
-    assert str(payroll) == expected
+
+def test_payroll_output_no_elfs(payday):
+    payroll = Payroll(payday)
+    payroll.run()
+
+    assert str(payroll) == "\nTotal change: {}"
+
+
+def test_cmd_line(capfd, payday):
+    sys.argv = ["payroll", "test_elves.csv", "-d", payday.strftime('%Y-%m-%d')]
+    payroll.main()
+
+    out, err = capfd.readouterr()
+    assert out == report + "\n"
+
+
+def test_argparser():
+    sys.argv = ["payroll", "test_elves.csv"]
+    parser = argparser()
+    args = parser.parse_args()
+    assert args.payday == date.today()
 
 
 def test_paycheck_output(paycheck):

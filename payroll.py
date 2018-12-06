@@ -1,4 +1,8 @@
+import argparse
+import csv
+from datetime import date
 from decimal import Decimal
+from functools import reduce
 
 
 class Payroll(object):
@@ -30,6 +34,9 @@ class Payroll(object):
     def run(self):
         for elf in self.elfs:
             self.report.append(self.paycheck(elf))
+
+    def add_elf(self, elf):
+        self.elfs.append(elf)
 
     def paycheck(self, elf):
         pay = self.pay(elf)
@@ -83,12 +90,16 @@ class Change(dict):
     ]
 
     def __str__(self):
-        output = '{'
-        for n, c in sorted(self.items(), reverse=True):
-            output += "%s: %s, " % (n, c)
-        output = output[:-2]
-        output += '}'
-        return output
+        if not self.items():
+            return "{}"
+
+        output = reduce(
+            lambda x, y: ', '.join([x, y]),
+            map(
+                lambda i: "%s: %s" % (i[0], i[1]),
+                sorted(self.items(), reverse=True)),
+        )
+        return "{%s}" % output
 
     def update_from_money(self, amount):
         change = self.make(amount)
@@ -122,7 +133,7 @@ class Elf(object):
         self.birthday = birthday
 
     def __str__(self):
-        return "%s %s" % (self.name, self.surname)
+        return "%s" % self.name
 
     def age(self, date):
         diff = date.year - self.birthday.year
@@ -130,3 +141,33 @@ class Elf(object):
             diff -= 1
 
         return diff
+
+
+def argparser():
+    parser = argparse.ArgumentParser(
+        description='Santa\'s Payroll'
+    )
+
+    parser.add_argument('elves', type=open)
+    parser.add_argument('-d', type=date.fromisoformat,
+                        dest='payday', default=date.today())
+
+    return parser
+
+
+def main():
+    parser = argparser()
+    args = parser.parse_args()
+    payroll = Payroll(args.payday)
+    with args.elves as fd:
+        csv_reader = csv.reader(fd, delimiter=',')
+        for row in csv_reader:
+            elf = Elf(date.fromisoformat(row[1]), row[0])
+            payroll.add_elf(elf)
+
+    payroll.run()
+    print(payroll)
+
+
+if __name__ == "__main__":
+    main()
