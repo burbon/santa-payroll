@@ -53,11 +53,9 @@ def paycheck_of_not_born_elf(elf, pay_of_not_born_elf):
 
 report = \
     "Alabaster Snow|52|" \
-    "{'charity': 5.2, 'retirement': 20.8, 'candy': 26.0}|" \
-    "{20: 2, 5: 2, 1: 1, 0.25: 3, 0.1: 2, 0.05: 1}\n" \
+    "{'charity': 5.2, 'retirement': 20.8, 'candy': 26.0}\n" \
     "FooBar|485|" \
-    "{'charity': 48.5, 'retirement': 194.0, 'candy': 242.5}|" \
-    "{100: 3, 20: 8, 10: 1, 5: 1, 1: 9, 0.25: 4}\n" \
+    "{'charity': 48.5, 'retirement': 194.0, 'candy': 242.5}\n" \
     "\nTotal change: " \
     "{100: 3, 20: 10, 10: 1, 5: 3, 1: 10, " \
     "0.25: 7, 0.1: 2, 0.05: 1}"
@@ -107,7 +105,7 @@ def test_payroll_output(payday, elf, elf2):
     assert str(payroll) == report
 
 
-def test_payroll_output_no_elfs(payday):
+def test_payroll_output_no_elves(payday):
     payroll = Payroll(payday)
     payroll.run()
 
@@ -137,8 +135,8 @@ def test_paycheck_output(paycheck):
     assert str(paycheck.change) == \
         "{20: 2, 5: 2, 1: 1, 0.25: 3, 0.1: 2, 0.05: 1}"
 
-    assert str(paycheck) == '%s|%s|%s|%s' % (
-        paycheck.elf, paycheck.pay, paycheck.jars, paycheck.change)
+    assert str(paycheck) == '%s|%s|%s' % (
+        paycheck.elf, paycheck.pay, paycheck.jars)
 
 
 def test_elf_age_had_birthday_that_year():

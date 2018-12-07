@@ -12,11 +12,11 @@ class Payroll(object):
         'candy': Decimal('0.5'),
     }
 
-    def __init__(self, payday, elfs=None):
+    def __init__(self, payday, elves=None):
         self.payday = payday
-        self.elfs = elfs
-        if not self.elfs:
-            self.elfs = []
+        self.elves = elves
+        if not self.elves:
+            self.elves = []
 
         self.change = Change()
         self.report = []
@@ -32,11 +32,11 @@ class Payroll(object):
         return output
 
     def run(self):
-        for elf in self.elfs:
+        for elf in self.elves:
             self.report.append(self.paycheck(elf))
 
     def add_elf(self, elf):
-        self.elfs.append(elf)
+        self.elves.append(elf)
 
     def paycheck(self, elf):
         pay = self.pay(elf)
@@ -66,8 +66,8 @@ class Paycheck(object):
         self.build_jars()
 
     def __str__(self):
-        return "%s|%s|%s|%s" % (
-            self.elf, self.pay, self.jars, self.change)
+        return "%s|%s|%s" % (
+            self.elf, self.pay, self.jars)
 
     def build_jars(self):
         for jar_name, jar_tax in self.jars_def.items():
